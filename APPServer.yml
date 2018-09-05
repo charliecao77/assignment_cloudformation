@@ -67,16 +67,10 @@ Resources:
             yum -y erase ntp*
             #/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
     Metadata:
-      AWS::ClouFormation::Init:
+      AWS::CloudFormation::Init:
         configSets:
           tdagent:
             - "configure_cfn"
-            - "install_fluentd"
-           # - "config_chrony"
-           # - "install_fluentd"
-           # - "config_fluentd"
-           # - "install_td-agent"
-           # - "config_td-agent"
         configure_cfn:
           files:
             /etc/cfn/hooks.d/cfn-auto-reloader.conf:
@@ -106,19 +100,19 @@ Resources:
                 files:
                   - "/etc/cfn/cfn-hup.conf"
                   - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"  
-        install_fluentd:
-          packages:
-            yum:
-              chrony: []
-          files:
-            /etc/chrony.conf:
-              content: 
-                "server 169.254.169.123 prefer iburst"
-          services:
-            sysvinit:
-              chronyd:
-                enabled: "true"
-                ensureRunning: "true"
+#       install_fluentd:
+#         packages:
+#           yum:
+#             chrony: []
+#         files:
+#           /etc/chrony.conf:
+#             content: 
+#               "server 169.254.169.123 prefer iburst"
+#         services:
+#           sysvinit:
+#             chronyd:
+#               enabled: "true"
+#               ensureRunning: "true"
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
