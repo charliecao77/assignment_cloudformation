@@ -2,15 +2,85 @@ Resources:
   EC2:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
+    #CreationPolicy:
+    #  ResourceSignal:
+    #    Timeout: PT5M
     Properties:
       ImageId: "ami-04351e12"
       InstanceType: "t2.micro"
       KeyName: assignmentCFN
+      SecurityGroupIds: 
+        - !Ref SecurityGroup 
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            yum update -y
+            aws-cfn-bootstrap 
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName}
+            --resource EC2 --configsets td-agent --region ${AWS::Region}
+            yum -y update
+            yum -y erase ntp*
+            #/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
+    Metadata:
+      AWS::ClouFormation::Init:
+        configSets:
+          td-agent:
+            - "configure_cfn"
+            - "install_chrony"
+           # - "config_chrony"
+           # - "install_fluentd"
+           # - "config_fluentd"
+           # - "install_td-agent"
+           # - "config_td-agent"
+        configure_cfn:
+          files:
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.EC2.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets chrony
+                --region ${AWS::Region}
+              mode: "000400"
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub | 
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: "true"
+                ensureRunning: "true"
+                files:
+                  - "/etc/cfn/cfn-hup.conf"
+                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"  
+        install_chrony:
+          packages:
+            yum:
+              chrony: []
+          files:
+            /etc/chrony.conf:
+              content: 
+                "server 169.254.169.123 prefer iburst"
+          services:
+            sysvinit:
+              chronyd:
+                enabled: "true"
+                ensureRunning: "true"
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Only Open SSH port"
-      #VpcId:
+      VpcId: vpc-23242758
       SecurityGroupIngress:
         -
           CidrIp: 0.0.0.0/0

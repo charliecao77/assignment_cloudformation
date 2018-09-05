@@ -1,0 +1,20 @@
+Resources:
+  syslogBucket:
+    Type: AWS::S3::Bucket
+   # Properties:
+   #   BucketEncryption:
+  syslogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref syslogBucket
+      PolicyDocument:
+        Statement:
+          - 
+            Sid: "syslogBucketPolicysid"
+            Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref syslogBucket, "/*"]]
+            Principal:
+              AWS:
+                - "*" 

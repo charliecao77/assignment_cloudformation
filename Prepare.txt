@@ -9,6 +9,8 @@ or # -------
 aws ec2 describe-images --owners amazon \
   --filter "Name=description,Values=Amazon Linux AMI 2017*" | 
    jq -c '.Images[] | {ImageId, Name, Description}'
+or # --------
+aws ec2 describe-images --owners amazon   --filter "Name=description,Values=Amazon Linux AMI 2017.03*GP2" |     jq -c '.Images[] | {ImageId}'
 
 "ImageId": "ami-20ce4936",
 "ImageId": "ami-2172cc37",
