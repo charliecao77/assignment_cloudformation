@@ -1,3 +1,48 @@
+Parameters:
+  sshkeyname:
+    Type: String 
+    Default: assignmentCFN
+  EnvironmentSize:
+    Type: String
+    Default: SMALL
+    AllowedValues:
+      - SMALL
+      - MEDIUM
+      - LARGE
+    Description: Select Environment Size (S,M,L)
+Mappings:
+  RegionMap:
+    us-east-1:
+      "AMALINUX" : "ami-04351e12" #Amazon Linux AMI 2017.03
+    us-east-2:
+      "AMALINUX" : "ami-1c002379" #Amazon Linux AMI 2017.03
+    us-west-1:
+      "AMALINUX" : "ami-14b89b74" #Amazon Linux AMI 2017.03
+    us-west-2:
+      "AMALINUX" : "ami-11120768" #Amazon Linux AMI 2017.03
+    eu-west-2:
+      "AMALINUX" : "ami-0a85946e" #Amazon Linux AMI 2017.03
+    eu-west-1:
+      "AMALINUX" : "ami-13f7226a" #Amazon Linux AMI 2017.03
+    ap-northeast-2:
+      "AMALINUX" : "ami-7ee13b10" #Amazon Linux AMI 2017.03
+    ap-northeast-1:
+      "AMALINUX" : "ami-21815747" #Amazon Linux AMI 2017.03
+    ca-central-1:
+      "AMALINUX" : "ami-32bb0556" #Amazon Linux AMI 2017.03
+    ap-southeast-1:
+      "AMALINUX" : "ami-1926ab7a" #Amazon Linux AMI 2017.03
+    ap-southeast-2:
+      "AMALINUX" : "ami-42e9f921" #Amazon Linux AMI 2017.03
+    eu-central-1:
+      "AMALINUX" : "ami-0460cb6b" #Amazon Linux AMI 2017.03   
+  InstanceSize:
+    SMALL:
+      "EC2" : "t2.micro"
+    MEDIUM:
+      "EC2" : "t2.small"
+    LARGE:  
+      "EC2" : "t2.medium"
 Resources:
   EC2:
     Type: AWS::EC2::Instance
@@ -6,28 +51,27 @@ Resources:
     #  ResourceSignal:
     #    Timeout: PT5M
     Properties:
-      ImageId: "ami-04351e12"
-      InstanceType: "t2.micro"
-      KeyName: assignmentCFN
+      ImageId: !FindInMap [RegionMap,!Ref "AWS::Region","AMALINUX"] 
+      InstanceType: !FindInMap [InstanceSize,!Ref EnvironmentSize, EC2]
+      KeyName: !Ref sshkeyname
       SecurityGroupIds: 
         - !Ref SecurityGroup 
       UserData:
         "Fn::Base64":
           !Sub |
-            #!/bin/bash
-            yum update -y
-            aws-cfn-bootstrap 
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName}
-            --resource EC2 --configsets td-agent --region ${AWS::Region}
+            #!/bin/bash -ex
+            yum install -y aws-cfn-bootstrap
+            yum update -y aws-cfn-bootstrap #good
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets tdagent --region ${AWS::Region}
             yum -y update
             yum -y erase ntp*
             #/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
     Metadata:
       AWS::ClouFormation::Init:
         configSets:
-          td-agent:
+          tdagent:
             - "configure_cfn"
-            - "install_chrony"
+            - "install_fluentd"
            # - "config_chrony"
            # - "install_fluentd"
            # - "config_fluentd"
@@ -40,8 +84,7 @@ Resources:
                 [cfn-auto-reloader-hook]
                 triggers=post.update
                 path=Resources.EC2.Metadata.AWS::CloudFormation::Init
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets chrony
-                --region ${AWS::Region}
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets tdagent --region ${AWS::Region}
               mode: "000400"
               owner: root
               group: root
@@ -63,7 +106,7 @@ Resources:
                 files:
                   - "/etc/cfn/cfn-hup.conf"
                   - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"  
-        install_chrony:
+        install_fluentd:
           packages:
             yum:
               chrony: []
