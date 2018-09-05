@@ -1,0 +1,28 @@
+Resources:
+  EC2:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: "ami-04351e12"
+      InstanceType: "t2.micro"
+      KeyName: assignmentCFN
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Only Open SSH port"
+      #VpcId:
+      SecurityGroupIngress:
+        -
+          CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          ToPort: "22"
+          FromPort: "22"
+      SecurityGroupEgress:
+        -
+          CidrIp: 0.0.0.0/0
+          ToPort: "-1"
+          IpProtocol: "-1"
+Outputs:
+  assignmentEC2:
+    Description: Access URL for assignmentEC2
+    Value: !Join ["",["EC2 Public IpAddress:",!GetAtt EC2.PublicIp]]
