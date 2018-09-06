@@ -38,13 +38,12 @@ $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.5.sh | s
 ## td-agent 2.3 or earlier (Adapte for Amazon Linux) 
 $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
 ```
-- Let rsyslogd forward syslog to td-agent
+1. Let rsyslogd forward syslog to td-agent
 ```
 $ echo -e '#Add\n *.* @127.0.0.1:42185 \n' >> /etc/rsyslogd.conf
 $ service rsyslog restart
-
 ```
-- Edit /etc/td-agent/td-agent.conf to look like this:
+2. Edit /etc/td-agent/td-agent.conf to look like this:
 ```
 <source>
   @type syslog
@@ -54,27 +53,24 @@ $ service rsyslog restart
 
 <match **>
   @type s3
-
   s3_bucket <your S3 bucket Name>
   s3_region <bucket in which aws region>
   path syslogs/        # prefix of the file on S3  
   buffer_path /var/log/td-agent/buffer
-
   time_slice_format %Y%m%d%H
   time_slice_wait 10m
   utc
-
   buffer_chunk_limit 256m
 </match>
-
 ```
- - After that, you can start td-agent and everything should work:
+
+3. After that, you can start td-agent and everything should work:
 ```
 $ service td-agent restart
-
 ```
 
 
+# What to learn more, keep looking
 # Parse Syslog Messages Robustly 
 ## Start a small testing first
 ####### [Ref_link](https://www.fluentd.org/guides/recipes/parse-syslog)
