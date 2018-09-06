@@ -28,7 +28,7 @@ Please package all the components into a zip file. A readme (can be a word docum
 file) outlining the assumptions and steps should be included in the root folder)
 
 
-# How to parse syslog and write into S3 with td-agent, 
+# How to parse syslog and write into S3 with td-agent
 ###### [Ref link](https://docs.fluentd.org/v0.12/articles/recipe-syslog-to-s3)
 - Install td-agent (which is a stable community distribution of Fluentd)
 ```
