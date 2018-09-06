@@ -1,8 +1,25 @@
+Parameters:
+  KMSMasterKey:
+    Type: String
+    Default: 5d285a64-6ee4-4942-bcfd-4104cced70de
+    Description: KMS Master Key ID
+  syslogBucketName:
+    Type: String
+    Default: jianyuancao-assignments-bucket
+    Description: store syslog,deploy CFN Templates
 Resources:
   syslogBucket:
+    DeletionPolicy: Retain
     Type: AWS::S3::Bucket
-   # Properties:
-   #   BucketEncryption:
+    Properties:
+      BucketName: !Ref syslogBucketName
+      AccessControl: Private #LogDeliveryWrite
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: 
+              KMSMasterKeyID: !Ref KMSMasterKey 
+              SSEAlgorithm: aws:kms
+
   syslogBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -10,11 +27,18 @@ Resources:
       PolicyDocument:
         Statement:
           - 
-            Sid: "syslogBucketPolicysid"
+            Sid: "EC2syslogBucketPolicysid"
             Action:
               - "s3:GetObject"
+              - "s3:PutObject"
             Effect: Allow
             Resource: !Join ["", ["arn:aws:s3:::", !Ref syslogBucket, "/*"]]
             Principal:
               AWS:
-                - "*" 
+                - "arn:aws:iam::606839411575:role/rolesyslogtos3" 
+              # - "*"
+
+Outputs:
+  syslogBucketurl:
+    Description: URL for syslog Bucket
+    Value: !Sub ${syslogBucket.WebsiteURL}

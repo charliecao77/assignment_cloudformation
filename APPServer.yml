@@ -1,4 +1,52 @@
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Infrastructure Configuration"
+        Parameters:
+          - VPCId
+          - EnvironmentSize
+          - SSHkeyname
+      -  
+        Label:
+          default: "Syslog Configuration"
+        Parameters:
+          - InstallSourceTdAgent
+          - SyslogBucket
+          - SyslogBucketRegion
+          - SyslogPrefix
+          - SyslogCollectInterval
+          - SyslogUploadS3Interval
+
 Parameters:
+  SyslogBucket:
+    Type: String
+    Default: jianyuancao-assignments-bucket
+    Description: bucket for stored EC2 syslog
+  SyslogBucketRegion:
+    Type: String
+    Default: us-east-1
+    Description: Syslog bucket Region
+  SyslogPrefix:
+    Type: String
+    Default: "syslogs/"
+    Description: Prefix of the file on S3
+  SyslogCollectInterval:
+    Type: String
+    Default: "%Y%m%d%H"
+    Description: syslog collection interval hour-%Y%m%d%H, minute-%Y%m%d%H%M
+    AllowedValues:
+      - "%Y%m%d%H"
+      - "%Y%m%d%H%M"
+  SyslogUploadS3Interval:
+    Type: String
+    Default: 10
+    Description: syslog upload to S3 interval x minutes
+  InstallSourceTdAgent:
+    Type: String
+    Default: "curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh"
+    Description: Install td-agent from fluentd
   VPCId:
     Type: String
     Default: vpc-23242758
@@ -6,6 +54,7 @@ Parameters:
   SSHkeyname:
     Type: String 
     Default: assignmentCFN
+    Description: SSH Key Name
   EnvironmentSize:
     Type: String
     Default: SMALL
@@ -13,7 +62,7 @@ Parameters:
       - SMALL
       - MEDIUM
       - LARGE
-    Description: Select Environment Size (S,M,L)
+    Description: Select Environment Size (S-t2.micro,M-t2.small,L-t2.medium)
 Mappings:
   RegionMap:
     us-east-1:
@@ -47,6 +96,7 @@ Mappings:
       "EC2" : "t2.small"
     LARGE:  
       "EC2" : "t2.medium"
+  
 Resources:
   EC2:
     Type: AWS::EC2::Instance
@@ -74,10 +124,13 @@ Resources:
         configSets:
           tdagent:
             - "configure_cfn"
-            - "remove_ntp"
+            - "remove_NTP"
             - "install_chrony"
-            - "system_config"
+            - "config_OS"
+            - "SyslogTotd-agent"
             - "install_td-agent"
+            - "config_td-agent"
+            - "restart-td-agent"
         configure_cfn:
           files:
             /etc/cfn/hooks.d/cfn-auto-reloader.conf:
@@ -107,11 +160,13 @@ Resources:
                 files:
                   - "/etc/cfn/cfn-hup.conf"
                   - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"  
-        remove_ntp:
+        remove_NTP:
+          test: "test $(rpm -qa|grep ntp)"
           commands:
             remove_ntp_packages:
               command: "yum -y remove ntp*"
         install_chrony:
+          test: "test ! $(rpm -qa|grep chrony)"
           packages:
             yum:
               chrony: []
@@ -120,38 +175,99 @@ Resources:
               chronyd:
                 enabled: "true"
                 ensureRunning: "true"
-        system_config:
+        config_OS:
           commands:
             01_increase_max_file_descriport:
+              test: "test $(grep -i '#add by CFN' /etc/security/limits.conf|wc -l) -lt 1"
+              command: "echo -e \"$ADD_CONTENT\" >> limits.conf"
+              env: 
+                ADD_CONTENT: "#add by CFN\n
+                              root soft nofile 65536\n
+                              root hard nofile 65536\n
+                              * soft nofile 65536\n
+                              * hard nofile 65536\n
+                             "
               cwd: "/etc/security"
-              command: "echo -e 'root soft nofile 65536\nroot hard nofile 65536\n* soft nofile 65536\n* hard nofile 65536' >> limits.conf"
-            02_optimize_network_kernel_parameters:
-              cwd: "/etc"
-              command: "echo -e 'net.core.somaxconn = 1024\n
-                        net.core.netdev_max_backlog = 5000\n
-                        net.core.rmem_max = 16777216\n
-                        net.core.wmem_max = 16777216\n
-                        net.ipv4.tcp_wmem = 4096 12582912 16777216\n
-                        net.ipv4.tcp_rmem = 4096 12582912 16777216\n
-                        net.ipv4.tcp_max_syn_backlog = 8096\n
-                        net.ipv4.tcp_slow_start_after_idle = 0\n
-                        net.ipv4.tcp_tw_reuse = 1\n
-                        net.ipv4.ip_local_port_range = 10240 65535' >> sysctl.conf"
-            03_active_02_change:
-              cwd: "/etc"
-              command: "sysctl -p"
-            04_apply_change_01:
+            02_apply_change: # apply limits.conf without reboot
+              test: "test $(grep -i '#add by CFN' /etc/pam.d/common-session|wc -l) -lt 1"
+              command: "echo -e \"$ADD_CONTENT\" >> common-session"
+              env:
+                ADD_CONTENT: "#add by CFN\n
+                              session required pam_limits.so\n
+                             "
               cwd: "/etc/pam.d"
-              command: "echo 'session required pam_limits.so' >> common-session "
+            03_optimize_network_kernel_parameters:
+              test: "test $(grep -i '#add by CFN' /etc/sysctl.conf|wc -l) -lt 1"
+              command: "echo -e \"$ADD_CONTENT\" >> sysctl.conf"
+              env:
+                ADD_CONTENT: "#add by CFN\n
+                              net.core.somaxconn = 1024\n
+                              net.core.netdev_max_backlog = 5000\n
+                              net.core.rmem_max = 16777216\n
+                              net.core.wmem_max = 16777216\n
+                              net.ipv4.tcp_wmem = 4096 12582912 16777216\n
+                              net.ipv4.tcp_rmem = 4096 12582912 16777216\n
+                              net.ipv4.tcp_max_syn_backlog = 8096\n
+                              net.ipv4.tcp_slow_start_after_idle = 0\n
+                              net.ipv4.tcp_tw_reuse = 1\n
+                              net.ipv4.ip_local_port_range = 10240 65535\n
+                             "
+              cwd: "/etc"
+            04_active_change: # active change sysctl.conf without reboot
+              command: "sysctl -p"
+              cwd: "/etc"
+        SyslogTotd-agent:
+          commands:
+            syslog_forward_to_td-agent:
+              test: "test $(grep -i '#add by CFN' /etc/rsyslog.conf|wc -l) -lt 1"
+              command: "echo -e \"$ADD_CONTENT\" >> rsyslog.conf"
+              env:
+                ADD_CONTENT: "#add by CFN\n
+                              *.* @127.0.0.1:42185\n
+                             "
+              cwd: "/etc"  
+          services:
+            sysvinit:
+              rsyslog:
+                ensureRunning: "true"
         install_td-agent:
           commands:
-            01_install:
-              command: "curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh"
-            02_start_service:
-              command: "/etc/init.d/td-agent start"
-            03_set_runningreboot:
-              command: "chkconfig td-agent on"  
-             chronyd:
+            install:
+              test: "test ! $(rpm -qa|grep td-agent)" 
+              command: !Sub |
+                ${InstallSourceTdAgent}
+              cwd: "~"
+        config_td-agent:
+          test: "test $(grep -i '#add by CFN' /etc/td-agent/td-agent.conf|wc -l) -lt 1"
+          files:
+            /etc/td-agent/td-agent.conf:
+              content: !Sub |
+                #add by CFN
+                <source>
+                  @type syslog
+                  port 42185
+                  tag system
+                </source>
+                <match **>
+                  @type s3
+                  s3_bucket ${SyslogBucket}
+                  s3_region ${SyslogBucketRegion}
+                  path ${SyslogPrefix}
+                  buffer_path /var/log/td-agent/buffer
+                  time_slice_format ${SyslogCollectInterval}
+                  time_slice_wait ${SyslogUploadS3Interval}m
+                  utc
+                  buffer_chunk_limit 256m
+                </match>
+              mode: "00644"
+              owner: root
+              group: root
+        restart-td-agent:
+          services:
+            td-agent:
+              enabled: "true"
+              ensureRunning: "true"
+
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
