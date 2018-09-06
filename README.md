@@ -30,6 +30,7 @@ file) outlining the assumptions and steps should be included in the root folder)
 
 # How to parse syslog and write into S3 with td-agent
 ###### [Ref link](https://docs.fluentd.org/v0.12/articles/recipe-syslog-to-s3)
+- A running instance of rsyslogd
 - Install td-agent (which is a stable community distribution of Fluentd)
 ```
 ## td-agent 2.5 or later. Only CentOS/RHEL 6 and 7 for now.
@@ -37,6 +38,57 @@ $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.5.sh | s
 ## td-agent 2.3 or earlier (Adapte for Amazon Linux) 
 $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
 ```
+# Start a small testing first
+####### [Ref_link](https://www.fluentd.org/guides/recipes/parse-syslog)
+
+## Setting up rsyslogd
+Go to /etc/rsyslogd.conf and add the following line:
+```
+*.* @127.0.0.1:42185
+```
+Restart the rsyslog, to active this setting
+```
+service rsyslog restart
+```
+This line tells rsyslogd to forward local system logs to port 42185 to which Fluentd will listen.
+
+## Setting up Fluentd
+In this section, we will evolve our Fluentd configuration step-by-step.
+#### Step 1: Listening to syslog messages
+First, let's configure to listen to syslog messages.
+Edit /etc/td-agent/td-agent.conf to look like this:
+```
+<source>
+  @type syslog
+  port 42185
+  tag system
+</source>
+
+<match system.**>
+  @type stdout
+</match>
+```
+This is the most basic setup: it listens to all syslog messages and logs them to stdout.
+Now, let's restart td-agent:
+```
+$ sudo service td-agent restart
+```
+Let's confirm data is coming in. Here is what my log looks like:
+```
+$ sudo tail /var/log/td-agent/td-agent.log
+```
+(One can always "force" a syslog event with the logger command like logger -t foo.bar "hello world")
+```
+2014-06-01 19:41:28 +0000 system.kern.info: {"host":"precise64","ident":"kernel","message":"[49851.032200] docker0: port 2(veth6091) entering disabled state"}
+2014-06-01 19:41:29 +0000 system.daemon.info: {"host":"precise64","ident":"ntpd","pid":"3289","message":"Deleting interface #11 veth6091, fe80::540b:1aff:fe1f:810c#123, interface stats: received=0, sent=0, dropped=0, active_time=4 secs"}
+2014-06-01 19:41:29 +0000 system.daemon.info: {"host":"precise64","ident":"ntpd","pid":"3289","message":"peers refreshed"}
+2014-06-01 19:41:44 +0000 system.authpriv.notice: {"host":"precise64","ident":"sudo","message":"vagrant : TTY=pts/3 ; PWD=/home/vagrant ; USER=root ; COMMAND=/usr/bin/vim /var/log/td-agent/td-agent.log"}
+```
+#### Step 2: Parsing the details of sudo calls.
+Now, let's look at a sudo message like this one.
+> 2014-06-01 19:41:44 +0000 system.authpriv.notice: {"host":"precise64","ident":"sudo","message":"vagrant : TTY=pts/3 ; PWD=/home/vagrant ; USER=root ; COMMAND=/usr/bin/vim /var/log/td-agent/td-agent.log"}
+
+
 
 - /etc/td-agent/td-agent.conf should look like this (just copy and paste this into td-agent.conf):
 ```
