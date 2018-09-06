@@ -4,8 +4,8 @@ Objective: Install td‐agent (from fluentd) onto an EC2 instance using a CloudF
 - [x] 1. Launch an EC2 instance (t2.micro) that uses Amazon Linux 2017.3 within a VPC  
 - [x] 2. Associate a Security Group to the instance to allow ssh access  
 - [x] 3. Apply the appropriate OS patches (may use yum for the purposes of this exercise)  
-- [] 4. Install fluentd (and pre‐requesites) form the source
-- [] 5. Configure fluentd to parse the Linux syslog and write to a KMS key encrypted S3 bucket
+- [ ] 4. Install fluentd (and pre‐requesites) form the source
+- [ ] 5. Configure fluentd to parse the Linux syslog and write to a KMS key encrypted S3 bucket
 (directory path should be the instance ID)
 
 You may have a separate StackSet to create the S3 bucket and to configure the KMS key for its usage,
