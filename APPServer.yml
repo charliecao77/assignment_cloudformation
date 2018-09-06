@@ -8,6 +8,7 @@ Metadata:
           - VPCId
           - EnvironmentSize
           - SSHkeyname
+          - RoleForSyslog
       -  
         Label:
           default: "Syslog Configuration"
@@ -47,6 +48,10 @@ Parameters:
     Type: String
     Default: "curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh"
     Description: Install td-agent from fluentd
+  RoleForSyslog:
+    Type: String
+    Default: RoleSyslogToS3
+    Description: custom role for write syslog to S3
   VPCId:
     Type: String
     Default: vpc-23242758
@@ -98,6 +103,31 @@ Mappings:
       "EC2" : "t2.medium"
   
 Resources:
+  RoleSyslogtoS3:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleForSyslog 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "S3SyslogAdmin"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "s3:*"
+                Resource: "*"
   EC2:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
@@ -248,7 +278,7 @@ Resources:
                   port 42185
                   tag system
                 </source>
-                <match **>
+                <match system.**>
                   @type s3
                   s3_bucket ${SyslogBucket}
                   s3_region ${SyslogBucketRegion}
@@ -257,6 +287,7 @@ Resources:
                   time_slice_format ${SyslogCollectInterval}
                   time_slice_wait ${SyslogUploadS3Interval}m
                   utc
+
                   buffer_chunk_limit 256m
                 </match>
               mode: "00644"
