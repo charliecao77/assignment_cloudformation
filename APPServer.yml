@@ -1,5 +1,9 @@
 Parameters:
-  sshkeyname:
+  VPCId:
+    Type: String
+    Default: vpc-23242758
+    Description: custom VPC
+  SSHkeyname:
     Type: String 
     Default: assignmentCFN
   EnvironmentSize:
@@ -53,7 +57,7 @@ Resources:
     Properties:
       ImageId: !FindInMap [RegionMap,!Ref "AWS::Region","AMALINUX"] 
       InstanceType: !FindInMap [InstanceSize,!Ref EnvironmentSize, EC2]
-      KeyName: !Ref sshkeyname
+      KeyName: !Ref SSHkeyname
       SecurityGroupIds: 
         - !Ref SecurityGroup 
       UserData:
@@ -61,16 +65,18 @@ Resources:
           !Sub |
             #!/bin/bash -ex
             yum install -y aws-cfn-bootstrap
-            yum update -y aws-cfn-bootstrap #good
+            #yum update -y aws-cfn-bootstrap #good
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets tdagent --region ${AWS::Region}
             yum -y update
             yum -y erase ntp*
+            yum -y install chrony
             #/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
           tdagent:
             - "configure_cfn"
+            - "install_chron"
         configure_cfn:
           files:
             /etc/cfn/hooks.d/cfn-auto-reloader.conf:
@@ -100,6 +106,18 @@ Resources:
                 files:
                   - "/etc/cfn/cfn-hup.conf"
                   - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"  
+        install_chrony:
+          files:
+            /etc/chrony.conf:
+              content: "server 169.254.169.123 prefer iburst"
+              mode: "000400"
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              chronyd:
+                enabled: "true"
+                ensureRunning: "true"
 #       install_fluentd:
 #         packages:
 #           yum:
@@ -117,7 +135,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Only Open SSH port"
-      VpcId: vpc-23242758
+      VpcId: !Ref VPCId
       SecurityGroupIngress:
         -
           CidrIp: 0.0.0.0/0
