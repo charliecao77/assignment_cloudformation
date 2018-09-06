@@ -34,7 +34,7 @@ file) outlining the assumptions and steps should be included in the root folder)
 ```
 ## td-agent 2.5 or later. Only CentOS/RHEL 6 and 7 for now.
 $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.5.sh | sh
-## td-agent 2.3 or earlier
+## td-agent 2.3 or earlier (Adapte for Amazon Linux) 
 $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
 ```
 
