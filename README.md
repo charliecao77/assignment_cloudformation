@@ -38,7 +38,7 @@ $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.5.sh | s
 $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
 ```
 
-- fluentd.conf should look like this (just copy and paste this into fluentd.conf):
+- /etc/td-agent/td-agent.conf should look like this (just copy and paste this into td-agent.conf):
 ```
 <source>
   @type syslog
@@ -62,9 +62,9 @@ $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
 </match>
 ```
 
- - After that, you can start fluentd and everything should work:
+ - After that, you can start td-agent and everything should work:
 ```
-$ fluentd -c fluentd.conf
+$ td-agent -c /etc/td-agent/td-agent.conf
 ```
 
   Of course, this is just a quick example. If you are thinking of running fluentd in production, consider using td-agent, the enterprise version of Fluentd packaged and maintained by Treasure Data, Inc..
