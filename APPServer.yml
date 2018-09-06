@@ -51,9 +51,10 @@ Resources:
   EC2:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
-    #CreationPolicy:
-    #  ResourceSignal:
-    #    Timeout: PT5M
+#   CreationPolicy:
+#     ResourceSignal:
+#       Count: 1
+#       Timeout: PT5M
     Properties:
       ImageId: !FindInMap [RegionMap,!Ref "AWS::Region","AMALINUX"] 
       InstanceType: !FindInMap [InstanceSize,!Ref EnvironmentSize, EC2]
@@ -65,18 +66,18 @@ Resources:
           !Sub |
             #!/bin/bash -ex
             yum install -y aws-cfn-bootstrap
-            #yum update -y aws-cfn-bootstrap #good
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets tdagent --region ${AWS::Region}
             yum -y update
-            yum -y erase ntp*
-            yum -y install chrony
-            #/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
+           # /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
           tdagent:
             - "configure_cfn"
-            - "install_chron"
+            - "remove_ntp"
+            - "install_chrony"
+            - "system_config"
+            - "install_td-agent"
         configure_cfn:
           files:
             /etc/cfn/hooks.d/cfn-auto-reloader.conf:
@@ -106,31 +107,51 @@ Resources:
                 files:
                   - "/etc/cfn/cfn-hup.conf"
                   - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"  
+        remove_ntp:
+          commands:
+            remove_ntp_packages:
+              command: "yum -y remove ntp*"
         install_chrony:
-          files:
-            /etc/chrony.conf:
-              content: "server 169.254.169.123 prefer iburst"
-              mode: "000400"
-              owner: root
-              group: root
+          packages:
+            yum:
+              chrony: []
           services:
             sysvinit:
               chronyd:
                 enabled: "true"
                 ensureRunning: "true"
-#       install_fluentd:
-#         packages:
-#           yum:
-#             chrony: []
-#         files:
-#           /etc/chrony.conf:
-#             content: 
-#               "server 169.254.169.123 prefer iburst"
-#         services:
-#           sysvinit:
-#             chronyd:
-#               enabled: "true"
-#               ensureRunning: "true"
+        system_config:
+          commands:
+            01_increase_max_file_descriport:
+              cwd: "/etc/security"
+              command: "echo -e 'root soft nofile 65536\nroot hard nofile 65536\n* soft nofile 65536\n* hard nofile 65536' >> limits.conf"
+            02_optimize_network_kernel_parameters:
+              cwd: "/etc"
+              command: "echo -e 'net.core.somaxconn = 1024\n
+                        net.core.netdev_max_backlog = 5000\n
+                        net.core.rmem_max = 16777216\n
+                        net.core.wmem_max = 16777216\n
+                        net.ipv4.tcp_wmem = 4096 12582912 16777216\n
+                        net.ipv4.tcp_rmem = 4096 12582912 16777216\n
+                        net.ipv4.tcp_max_syn_backlog = 8096\n
+                        net.ipv4.tcp_slow_start_after_idle = 0\n
+                        net.ipv4.tcp_tw_reuse = 1\n
+                        net.ipv4.ip_local_port_range = 10240 65535' >> sysctl.conf"
+            03_active_02_change:
+              cwd: "/etc"
+              command: "sysctl -p"
+            04_apply_change_01:
+              cwd: "/etc/pam.d"
+              command: "echo 'session required pam_limits.so' >> common-session "
+        install_td-agent:
+          commands:
+            01_install:
+              command: "curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh"
+            02_start_service:
+              command: "/etc/init.d/td-agent start"
+            03_set_runningreboot:
+              command: "chkconfig td-agent on"  
+             chronyd:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
