@@ -38,7 +38,45 @@ $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.5.sh | s
 ## td-agent 2.3 or earlier (Adapte for Amazon Linux) 
 $ curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh
 ```
-# Start a small testing first
+- Let rsyslogd forward syslog to td-agent
+```
+$ echo -e '#Add\n *.* @127.0.0.1:42185 \n' >> /etc/rsyslogd.conf
+$ service rsyslog restart
+
+```
+- Edit /etc/td-agent/td-agent.conf to look like this:
+```
+<source>
+  @type syslog
+  port 42185
+  tag system
+</source>
+
+<match **>
+  @type s3
+
+  s3_bucket <your S3 bucket Name>
+  s3_region <bucket in which aws region>
+  path syslogs/        # prefix of the file on S3  
+  buffer_path /var/log/td-agent/buffer
+
+  time_slice_format %Y%m%d%H
+  time_slice_wait 10m
+  utc
+
+  buffer_chunk_limit 256m
+</match>
+
+```
+ - After that, you can start td-agent and everything should work:
+```
+$ service td-agent restart
+
+```
+
+
+# Parse Syslog Messages Robustly 
+## Start a small testing first
 ####### [Ref_link](https://www.fluentd.org/guides/recipes/parse-syslog)
 
 ## Setting up rsyslogd
@@ -86,40 +124,126 @@ $ sudo tail /var/log/td-agent/td-agent.log
 ```
 #### Step 2: Parsing the details of sudo calls.
 Now, let's look at a sudo message like this one.
-> 2014-06-01 19:41:44 +0000 system.authpriv.notice: {"host":"precise64","ident":"sudo","message":"vagrant : TTY=pts/3 ; PWD=/home/vagrant ; USER=root ; COMMAND=/usr/bin/vim /var/log/td-agent/td-agent.log"}
+> 2014-06-01 19:41:44 +0000 system.authpriv.notice: {"host":"precise64",**"ident":"sudo"**,"message":"vagrant : TTY=pts/3 ; PWD=/home/vagrant ; USER=root ; COMMAND=/usr/bin/vim /var/log/td-agent/td-agent.log"}
 
+For security, it is worth knowing which user performed which action as a sudo-er. In order to do so, we need to parse the message field.
+In other words, we need to parse sudo syslog messages differently from other messages.
 
+To do this, we will use the [rewrite tag filter output plugin](https://github.com/fluent/fluent-plugin-rewrite-tag-filter). This plugin examines an event's record fields, match them against regexps and routes them. In the following example, Fluentd filters out all events except for "sudo" events. Sudo events are assigned the new tag "sudo".
 
-- /etc/td-agent/td-agent.conf should look like this (just copy and paste this into td-agent.conf):
+The rewrite tag filter output plugin ships with td-agent. If you are using vanilla Fluentd, run gem install fluent-plugin-rewrite-tag-filter.
 ```
 <source>
   @type syslog
-  port 5140
-  bind 0.0.0.0
-  tag system.local
+  port 42185
+  tag system
 </source>
 
-<match **>
-  @type s3
-  path <s3 path> #(optional; default="")
-  time_format <format string> #(optional; default is ISO-8601)
-  aws_key_id <Your AWS key id> #(required)
-  aws_sec_key <Your AWS secret key> #(required)
-  s3_bucket <s3 bucket name> #(required)
-  s3_endpoint <s3 endpoint name> #(required; ex: s3-us-west-1.amazonaws.com)
-  s3_object_key_format <format string> #(optional; default="%{path}%{time_slice}_%{index}.%{file_extension}")
-  auto_create_bucket <true/false> #(optional; default=true)
-  check_apikey_on_start <true/false> #(optional; default=true)
-  proxy_uri <proxy uri string> #(optional)
+<match system.**>
+  @type rewrite_tag_filter
+  rewriterule1 ident ^sudo$  sudo # sudo events
+  rewriterule2 .*                   clear # everyone else
+</match>
+
+<match clear>
+  @type null
 </match>
 ```
+The last "clear" match block is to filter out all non-sudo events. Think of it as Fluentd's **/dev/null**.
 
- - After that, you can start td-agent and everything should work:
-```
-$ td-agent -c /etc/td-agent/td-agent.conf
-```
+We still need to match sudo events. More specifically, let's just match lines that look like this:
+> 2014-06-01 19:41:44 +0000 system.authpriv.notice: {"host":"precise64","ident":"sudo","message":"vagrant : TTY=pts/3 ; PWD=/home/vagrant ; USER=root ; COMMAND=/usr/bin/vim /var/log/td-agent/td-agent.log"}
 
-  Of course, this is just a quick example. If you are thinking of running fluentd in production, consider using td-agent, the enterprise version of Fluentd packaged and maintained by Treasure Data, Inc..
-  
+For this, we use the rewrite tag filter plugin again and use another plugin called fluent-plugin-parser. fluent-plugin-parser lets Fluentd re-parse a particular field with arbitrary regular expressions.
+
+To install fluent-plugin-parser, run
+```
+$ sudo /usr/sbin/td-agent-gem install fluent-plugin-parser
+Fetching: fluent-plugin-parser-0.3.4.gem (100%)
+Successfully installed fluent-plugin-parser-0.3.4
+1 gem installed
+```
+Now, here is the final configuration:
+```
+<source>
+  type syslog
+  port 42185
+  tag system
+</source>
+
+<match system.**>
+  type rewrite_tag_filter
+  rewriterule1 ident ^sudo$  sudo  # sudo events
+  rewriterule2 ident .*      clear # everyone else
+</match>
+
+# This one matches for the exact sudo syslog messages that we want to parse
+# and re-tags it with "sudo_parse_it"
+<match sudo>
+  type rewrite_tag_filter
+  rewriterule1 message PWD=[^ ]+ ; USER=[^ ]+ ; COMMAND=.*$ sudo_parse_it
+  rewriterule2 message .* clear
+</match>
+
+# This one parses the message field and emits it with the sudoer, pwd and 
+# command. Then, it emits the parsed event with the tag "sudo_parsed"
+<match sudo_parse_it>
+  type parser
+  key_name message # this is the field to be parsed
+  format /PWD=(?<pwd>[^ ]+) ; USER=(?<sudoer>[^ ]+) ; COMMAND=(?<command>.*)$/
+  tag sudo_parsed
+</match>
+
+# Finally, emitting the data to stdout to confirm the behavior!
+<match sudo_parsed>
+    type stdout
+</match>
+
+<match clear>
+  type null
+</match>
+```
+Restart td-agent
+```
+$ sudo service td-agent restart
+```
+And run some sudo command. Since I have Docker running as root, let me peek into /var/lib/docker.
+```
+~$ sudo ls -alh /var/lib/docker
+total 76K
+drwx------  10 root root 4.0K Jun  1 19:41 .
+drwxr-xr-x  41 root root 4.0K May 30 23:02 ..
+drwxr-xr-x   2 root root 4.0K Apr 17 06:06 apparmor
+drwxr-xr-x   5 root root 4.0K Apr 15 19:59 aufs
+drwx------   4 root root 4.0K Jun  1 19:41 containers
+drwx------   3 root root 4.0K Apr 15 19:59 execdriver
+drwx------  64 root root  12K Jun  1 01:20 graph
+drwx------   2 root root 4.0K May 31 05:55 init
+-rw-r--r--   1 root root 7.0K Jun  1 19:41 linkgraph.db
+-rw-------   1 root root 1.4K Jun  1 01:20 repositories-aufs
+drwx------   2 root root 4.0K May 30 23:22 vfs
+drwx------ 147 root root  20K May 30 22:37 volumes
+```
+Now, let's check to make sure my furtive sudo attempt was logged:
+```
+$ sudo tail /var/log/td-agent/td-agent.log
+2014-06-01 23:26:50 +0000 [info]: adding match pattern="system.**" type="rewrite_tag_filter"
+2014-06-01 23:26:50 +0000 [info]: adding rewrite_tag_filter rule: rewriterule1 ["ident", /^sudo$/, "", "sudo"]
+2014-06-01 23:26:50 +0000 [info]: adding rewrite_tag_filter rule: rewriterule2 ["ident", /.*/, "", "clear"]
+2014-06-01 23:26:50 +0000 [info]: adding match pattern="sudo" type="rewrite_tag_filter"
+2014-06-01 23:26:50 +0000 [info]: adding rewrite_tag_filter rule: rewriterule1 ["message", /PWD=[^ ]+ ; USER=[^ ]+ ; COMMAND=.*$/, "", "sudo_parse_it"]
+2014-06-01 23:26:50 +0000 [info]: adding rewrite_tag_filter rule: rewriterule2 ["message", /.*/, "", "clear"]
+2014-06-01 23:26:50 +0000 [info]: adding match pattern="sudo_parse_it" type="parser"
+2014-06-01 23:26:50 +0000 [info]: adding match pattern="sudo_parsed" type="stdout"
+2014-06-01 23:26:50 +0000 [info]: adding match pattern="clear" type="null"
+2014-06-01 23:27:14 +0000 sudo_parsed: {"pwd":"/home/vagrant","sudoer":"root","command":"/bin/ls -alh /var/lib/docker"}
+```
+There it is, as you can see in the last line!
+
+
+## Conclusion
+Fluentd makes it easy to ingest syslog events. You can immediately send the data to output systems like MongoDB and Elasticsearch, but also you can do filtering and further parsing inside Fluentd before passing the processed data onto output destinations.
+
+
   
   
