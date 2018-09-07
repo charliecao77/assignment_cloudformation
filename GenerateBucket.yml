@@ -1,0 +1,56 @@
+#Parameters:
+#  NameSyslogBucket:
+#    Type: String
+#    Default: jianyuancao-assignments-bucket
+#    Description: store syslog,deploy CFN Templates
+Resources:
+  SyslogBucket:
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+#      BucketName: !Ref NameSyslogBucket
+      AccessControl: Private 
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: 
+              KMSMasterKeyID: !ImportValue sharedinf-KMSKeyId  
+              SSEAlgorithm: aws:kms
+  SyslogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SyslogBucket
+      PolicyDocument:
+        Statement:
+          - 
+            Sid: "EC2syslogBucketPolicysid"
+            Action:
+              - "s3:*"
+              #- "s3:GetObject"
+              #- "s3:PutObject"
+              #- "s3:ListBucket"
+            Effect: Allow
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref SyslogBucket, "/*"]]
+            Principal:
+              AWS:
+                - !Join ["",["arn:aws:iam::",!Ref "AWS::AccountId",":role/",!ImportValue sharedinf-SyslogRoleName ]] 
+Outputs:
+  SyslogBucketURL:
+    Description: syslog Bucket URL
+    Value: !Sub ${SyslogBucket.WebsiteURL}
+  SyslogBucketARN:
+    Description: syslog Bucket ARN
+    Value: !Join ["",["arn:aws:s3:::",!Ref SyslogBucket]] 
+    #Value: !Join ["",["arn:aws:s3:::",!Ref NameSyslogBucket]]
+    Export:
+      Name: sharedinf-SyslogBucketARN
+  SyslogBucketName:
+    Description: syslog Bucket Name
+    Value: !Ref SyslogBucket
+    #Value: !Ref NameSyslogBucket
+    Export:
+      Name: sharedinf-SyslogBucketName
+  SyslogBucketRegion:
+    Description: syslog Bucket Region
+    Value: !Ref "AWS::Region"
+    Export:
+      Name: sharedinf-SyslogBucketRegion
