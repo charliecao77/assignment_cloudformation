@@ -51,7 +51,7 @@ $ service rsyslog restart
   tag system
 </source>
 
-<match **>
+<match system.**>
   @type s3
   s3_bucket <your S3 bucket Name>
   s3_region <bucket in which aws region>
