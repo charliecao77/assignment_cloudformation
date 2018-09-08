@@ -43,12 +43,12 @@
 the syslog files will be automatically upload to the S3 bucket under the prefix EC2 instance ID
 ## Steps
 - Login the AWS console
-  - open the bucket which was created in above deployment in S3
-  - the bucket name show in the Bucket stack Output
+  - open the bucket which was automatically created by above deployment in S3
+    - check the Bucket Stack Output, the Stack name as prefix
 - Monitor the bucket content
-  - show the prefix as EC2 instance id
-  - show the log files under the prefix,ex: *.gz
-  - the log file number is increasing with the time estimate
+  - waitting around 10 minutes will see the Instance Id in the Bucket
+  - click the Instance Id, will see the log files with suffix ".gz"
+  
 
 
  
