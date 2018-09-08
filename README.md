@@ -6,16 +6,16 @@
 ## Steps
 - Download and unzip file jianyuancao_assignment.zip
 - Login and Open the AWS CloudFormation Service with a Console (Register one if don't have one :-) )
-- Create an IAM user cfnadmin(with AdministratorAccess policy, Skip this step if you already login it) which will be used to run the CloudFormation Template
+- Create an IAM user cfnadmin(with AdministratorAccess policy, Skip this step if you already login with one) which will be used to run the under CloudFormation Template deployment
   - Access type - AWS Management Console access
   - Console password - Custom password
   - Require password reset - check out
   - Set permissions for IAM user cfnadmin
   - Attach existing policies directly
   - Check-in Policy name - AdministratorAccess
-- Login AWS console with the user cfnadmin
+- Login AWS console with the user cfnadmin(or, the existing one with AdministratorAccess policy)
   - Open the EC2 service
-  - navigate to Key Pairs(show on the left side )
+  - navigate to Key Pairs(show on the left side of the window )
   - Click the button [Create Key Pair] and fill out the name 'LoginAssignmentEC2' in the popup window, and Create
   - Change the Key file LoginAssignmentEC2.pem read only by root
     - $ chmod 400 LoginAssignmentEC2.pem
@@ -25,10 +25,9 @@
     - GenerateBucket.yml
     - GenerateSecurityGroup.yml
     - GenerateEC2.yml
-  - replace the bucket name in 'TemplateURL' in the file main.yml, if the above bucket name is not 'jianyuancao-assignment-code'
   - Run Stack, and [choose file] main.yml, click the button next then go on 
   - Stack name - could be the one you prefer, like 'test-jyc-assignment'
-  - CFNTemplateS3 - A Bucket name which contains CloudFormation Template files in S3
+  - CFNTemplateS3 - fill out the Bucket name,which was created above and contained those CloudFormation Template files in S3
   - VPCId - Choose the default one (which was attached the InternetGateway)
   - EnvironmentSize - default is t1.micro
   - SSHKeyname - choose 'LoginAssignmentEC2' (the one created before) for ssh login the EC2 Server
