@@ -1,6 +1,6 @@
 # assignment_cloudformation
-Configuring an AWS instance with logging and core OS patches
-Objective: Install td‐agent (from fluentd) onto an EC2 instance using a CloudFormation StackSet  
+# Configuring an AWS instance with logging and core OS patches
+# Objective: Install td‐agent (from fluentd) onto an EC2 instance using a CloudFormation StackSet  
 - [x] 1. Launch an EC2 instance (t2.micro) that uses Amazon Linux 2017.3 within a VPC  
 - [x] 2. Associate a Security Group to the instance to allow ssh access  
 - [x] 3. Apply the appropriate OS patches (may use yum for the purposes of this exercise)  
@@ -27,9 +27,47 @@ outcomes
 Please package all the components into a zip file. A readme (can be a word document or a markdown
 file) outlining the assumptions and steps should be included in the root folder)
 
+# Deployment Guide
+## Steps
+- Download and unzip file jianyuancao_assignment.zip
+- Login and Open the AWS CloudFormation Service with a Console (Register one if don't have :))
+- Create a IAM user cfnadmin(with AdministratorAccess policie,Skip this step if you already login it) which will be used to run the CloudFormation Template
+  - Access type - AWS Management Console access
+  - Console password - Custom password
+  - Require password reset - check out
+  - Set permissions for IAM user cfnadmin
+    - Attach existing policies directly
+    - Check in Policy name - AdministratorAccess
+- Login AWS console with the user cfnadmin
+- Open the EC2 service
+  - navigate to Key Pairs(show in the left side )
+  - Click the button [Create Key Pair] and fill out the name 'LoginAssignmentEC2' in the pop up window, and Create
+- Create a S3 Bucket 'us-east-1-jianyuancao-assignment-code'(or the one you prefer) and upload CloudFormantion Template files, and Make them public can read access to them
+  - GenerateRole.yml
+  - GenerateKMS.yml
+  - GenerateBucket.yml
+  - GenerateEC2.yml
+- Run Stack, and [choose file] main.yml, click button next then go on 
+  - Stack name - could be the one you prefer, like 'test-jyc-assignment'  
+  - VPCId - Choose the default one (which was attached the InternetGateway)
+  - EnvironmentSize - default is t1.micro
+  - SSHKeyname - choose 'LoginAssignmentEC2' (the one created before) for ssh login the EC2 Server
+  - InstallSourceTdAgent - skip
+  - SyslogCollectInterval - choose %Y%m%d%H%M (for testing only, that's why didn't set it as default value)
+  - SyslogUploadS3Interval - change to 5 (for testing only)
+  - Click button next 
+  - No thing need to do on page Option, just click button next
+  - On the Review Page, check in 'I acknowledge that AWS CloudFormation might create IAM resources with custom names.'
+  - then, click button Create. and waiting for CloudFormation Complete the deployment on AWS.
+ 
+ # Verify Guide
+ ##  
+  
+
+
 
 # How to parse syslog and write into S3 with td-agent
-[Ref link](https://docs.fluentd.org/v0.12/articles/out_s3)
+[Ref:Amazon S3 Output Plugin](https://docs.fluentd.org/v0.12/articles/out_s3)
 - A running instance of rsyslogd
 - Install td-agent (which is a stable community distribution of Fluentd)
 ```
