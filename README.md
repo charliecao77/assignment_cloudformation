@@ -42,6 +42,8 @@ file) outlining the assumptions and steps should be included in the root folder)
 - Open the EC2 service
   - navigate to Key Pairs(show in the left side )
   - Click the button [Create Key Pair] and fill out the name 'LoginAssignmentEC2' in the pop up window, and Create
+  - Change the Key file LoginAssignmentEC2.pem read only by root
+    - $ chmod 400 LoginAssignmentEC2.pem
 - Create a S3 Bucket 'us-east-1-jianyuancao-assignment-code'(or the one you prefer) and upload CloudFormantion Template files, and Make them public can read access to them
   - GenerateRole.yml
   - GenerateKMS.yml
@@ -61,7 +63,16 @@ file) outlining the assumptions and steps should be included in the root folder)
   - then, click button Create. and waiting for CloudFormation Complete the deployment on AWS.
  
  # Verify Guide
- ##  
+ ## Steps
+ - Login the AWS console
+ - open the bucket which was created in above deployment in S3
+   - the bucket name show in the Bucket stack Output
+ - Monitor the bucket content
+   - show the prefix as EC2 instance id
+   - show the log files under the prefix,ex: *.gz
+   - the log file number is increasing with time
+ - Login the EC2 instance with the key file LoginAssignmentEC2.pem
+ - 
   
 
 
