@@ -3,6 +3,12 @@
 # Objective: Install td‐agent (from fluentd) onto an EC2 instance using a CloudFormation StackSet
 
 # Deployment Guide for running on AWS console
+- Assumptions
+  - an IAM user with AdministratorAccess policy can login AWS console
+  - a default VPC with a Public Subnet in Region us-east-1
+  - a bucket ready to upload CloudFormation Template files in S3
+  - a Key file which can help ssh into EC2 node
+  
 ## Steps
 - Download and unzip file jianyuancao_assignment.zip
 - Login and Open the AWS CloudFormation Service with a Console (Register one if don't have one :-) )
