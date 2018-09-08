@@ -6,6 +6,7 @@ Metadata:
         Label:
           default: "Infrastructure Configuration"
         Parameters:
+          - CFNTemplateS3
           - VPCId
           - EnvironmentSize
           - SSHkeyname
@@ -17,6 +18,10 @@ Metadata:
           - SyslogCollectInterval
           - SyslogUploadS3Interval
 Parameters:
+  CFNTemplateS3:
+    Type: String
+    Default: jianyuancao-assignment-code
+    Description: A Bucket name which contains CloudFormation Template files in S3
   SyslogCollectInterval:
     Type: String
     Default: "%Y%m%d%H"
@@ -92,22 +97,26 @@ Resources:
   RoleStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateRole.yml  
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CFNTemplateS3}/GenerateRole.yml"
+      #TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateRole.yml  
   KMSStack:
-    DependsOn: RoleStack
+    DependsOn: [RoleStack]
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateKMS.yml
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CFNTemplateS3}/GenerateKMS.yml"
+      #TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateKMS.yml
   BucketStack:
-    DependsOn: KMSStack
+    DependsOn: [KMSStack,RoleStack]
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateBucket.yml
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CFNTemplateS3}/GenerateBucket.yml"
+      #TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateBucket.yml
   EC2Stack:
-    DependsOn: BucketStack
+    DependsOn: [BucketStack,SecurityGroupStack]
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateEC2.yml
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CFNTemplateS3}/GenerateEC2.yml"
+      #TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateEC2.yml
       Parameters:
         VPCId: !Ref VPCId
         EnvironmentSize: !Ref EnvironmentSize
@@ -115,6 +124,14 @@ Resources:
         InstallSourceTdAgent: !Ref InstallSourceTdAgent
         SyslogCollectInterval: !Ref SyslogCollectInterval
         SyslogUploadS3Interval: !Ref SyslogUploadS3Interval
+  SecurityGroupStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CFNTemplateS3}/GenerateSecurityGroup.yml"
+      #TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateSecurityGroup.yml
+      Parameters:
+        VPCId: !Ref VPCId
+
 Outputs:
   EC2InstanceID:
     Value: !GetAtt ["EC2Stack","Outputs.InstanceID"]

@@ -16,12 +16,19 @@ Resources:
       PolicyDocument:
         Statement:
           - 
+            Sid: "EC2syslogBucketPolicyforlist"
+            Action:
+              - "s3:ListBucket"
+            Effect: Allow
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref SyslogBucket]]
+            Principal:
+              AWS:
+                - !Join ["",["arn:aws:iam::",!Ref "AWS::AccountId",":role/",!ImportValue sharedinf-SyslogRoleName ]] 
+          - 
             Sid: "EC2syslogBucketPolicysid"
             Action:
-              - "s3:*"
-              #- "s3:GetObject"
-              #- "s3:PutObject"
-              #- "s3:ListBucket"
+              - "s3:GetObject"
+              - "s3:PutObject"
             Effect: Allow
             Resource: !Join ["", ["arn:aws:s3:::", !Ref SyslogBucket, "/*"]]
             Principal:
@@ -34,13 +41,11 @@ Outputs:
   SyslogBucketARN:
     Description: syslog Bucket ARN
     Value: !Join ["",["arn:aws:s3:::",!Ref SyslogBucket]] 
-    #Value: !Join ["",["arn:aws:s3:::",!Ref NameSyslogBucket]]
     Export:
       Name: sharedinf-SyslogBucketARN
   SyslogBucketName:
     Description: syslog Bucket Name
     Value: !Ref SyslogBucket
-    #Value: !Ref NameSyslogBucket
     Export:
       Name: sharedinf-SyslogBucketName
   SyslogBucketRegion:

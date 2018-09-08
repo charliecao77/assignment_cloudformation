@@ -101,7 +101,7 @@ Resources:
       InstanceType: !FindInMap [InstanceSize,!Ref EnvironmentSize, EC2]
       KeyName: !Ref SSHkeyname
       SecurityGroupIds: 
-        - !Ref SecurityGroup 
+        - !ImportValue sharedinf-SGID 
       UserData:
         "Fn::Base64":
           !Sub |
@@ -268,22 +268,6 @@ Resources:
             trigger_syslog_service:
               command: " service td-agent restart;service rsyslog restart"
               cwd: "~"
-  SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: "Only Open SSH port"
-      VpcId: !Ref VPCId
-      SecurityGroupIngress:
-        -
-          CidrIp: 0.0.0.0/0
-          IpProtocol: tcp
-          ToPort: "22"
-          FromPort: "22"
-      SecurityGroupEgress:
-        -
-          CidrIp: 0.0.0.0/0
-          ToPort: "-1"
-          IpProtocol: "-1"
 Outputs:
   EC2IPAddress:
     Description: EC2 IP Address
