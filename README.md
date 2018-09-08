@@ -2,7 +2,7 @@
 # Configuring an AWS instance with logging and core OS patches
 # Objective: Install td‐agent (from fluentd) onto an EC2 instance using a CloudFormation StackSet
 
-# Deployment Guide
+# Deployment Guide for running on AWS console
 ## Steps
 - Download and unzip file jianyuancao_assignment.zip
 - Login and Open the AWS CloudFormation Service with a Console (Register one if don't have one :-) )
