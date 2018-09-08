@@ -1,14 +1,8 @@
-#Parameters:
-#  NameSyslogBucket:
-#    Type: String
-#    Default: jianyuancao-assignments-bucket
-#    Description: store syslog,deploy CFN Templates
 Resources:
   SyslogBucket:
     DeletionPolicy: Retain
     Type: AWS::S3::Bucket
     Properties:
-#      BucketName: !Ref NameSyslogBucket
       AccessControl: Private 
       BucketEncryption:
         ServerSideEncryptionConfiguration:

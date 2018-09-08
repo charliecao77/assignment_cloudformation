@@ -8,30 +8,14 @@ Metadata:
           - VPCId
           - EnvironmentSize
           - SSHkeyname
-#          - RoleForSyslog
       -  
         Label:
           default: "Syslog Configuration"
         Parameters:
           - InstallSourceTdAgent
-#          - SyslogBucket
-#          - SyslogBucketRegion
-#          - SyslogPrefix
           - SyslogCollectInterval
           - SyslogUploadS3Interval
 Parameters:
-#  SyslogBucket:
-#    Type: String
-#    Default: jianyuancao-assignments-bucket
-#    Description: bucket for stored EC2 syslog
-#  SyslogBucketRegion:
-#    Type: String
-#    Default: us-east-1
-#    Description: Syslog bucket Region
-#  SyslogPrefix:
-#    Type: String
-#    Default: "syslogs/"
-#    Description: Prefix of the file on S3
   SyslogCollectInterval:
     Type: String
     Default: "%Y%m%d%H"
@@ -49,10 +33,6 @@ Parameters:
     Type: String
     Default: "curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh | sh"
     Description: Install td-agent from fluentd
-#  RoleForSyslog:
-#    Type: String
-#    Default: RoleSyslogToS3
-#    Description: custom role for write syslog to S3
   VPCId:
     Type: AWS::EC2::VPC::Id
     Description: Choose Default VPC
@@ -108,37 +88,6 @@ Mappings:
     LARGE:  
       "EC2" : "t2.medium"
 Resources:
-#  RoleSyslogtoS3:
-#    Type: AWS::IAM::Role
-#    Properties:
-#      RoleName: !Ref RoleForSyslog 
-#      AssumeRolePolicyDocument:
-#        Version: "2012-10-17"
-#        Statement:
-#          - 
-#            Effect: "Allow"
-#            Principal:
-#              Service:
-#                - "ec2.amazonaws.com"
-#            Action:
-#              - "sts:AssumeRole"
-#      Path: "/"
-#      Policies:
-#        -
-#          PolicyName: "S3SyslogAdmin"
-#          PolicyDocument:
-#            Version: "2012-10-17"
-#            Statement:
-#              -
-#                Effect: "Allow"
-#                Action: "s3:*"
-#                Resource: "*"
-#  RoleSyslogtoS3Profile:
-#    Type: AWS::IAM::InstanceProfile
-#    Properties:
-#      Path: '/'
-#      Roles:
-#        - !Ref RoleSyslogtoS3
   MyEC2:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete

@@ -1,17 +1,7 @@
-#Parameters:
-#  NameRoleForSyslog:
-#   Type: String
-#   Default: RoleSyslogToS3
-#   Description: custom role for write syslog to S3   
-#  SyslogBucket:
-#    Type: String
-#    Default: jianyuancao-assignments-bucket
-#    Description: bucket for stored EC2 syslog
 Resources:
   RoleSyslogtoS3:
     Type: AWS::IAM::Role
     Properties:
-#      RoleName: !Ref NameRoleForSyslog 
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
