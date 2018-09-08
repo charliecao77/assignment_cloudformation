@@ -131,7 +131,3 @@ Resources:
       #TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateSecurityGroup.yml
       Parameters:
         VPCId: !Ref VPCId
-
-Outputs:
-  EC2InstanceID:
-    Value: !GetAtt ["EC2Stack","Outputs.InstanceID"]
