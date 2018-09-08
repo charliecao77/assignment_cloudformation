@@ -23,6 +23,7 @@
   - GenerateRole.yml
   - GenerateKMS.yml
   - GenerateBucket.yml
+  - GenerateSecurityGroup.yml
   - GenerateEC2.yml
 - replace the bucket name in 'TemplateURL' in the file main.yml, if the above bucket name is not 'jianyuancao-assignment-code'
 - Run Stack, and [choose file] main.yml, click button next then go on 
