@@ -44,11 +44,12 @@ file) outlining the assumptions and steps should be included in the root folder)
   - Click the button [Create Key Pair] and fill out the name 'LoginAssignmentEC2' in the pop up window, and Create
   - Change the Key file LoginAssignmentEC2.pem read only by root
     - $ chmod 400 LoginAssignmentEC2.pem
-- Create a S3 Bucket 'us-east-1-jianyuancao-assignment-code'(or the one you prefer) and upload CloudFormantion Template files, and Make them public can read access to them
+- Create a S3 Bucket 'jianyuancao-assignment-code'(or the one you prefer) and upload CloudFormantion Template files, and Make them public can read access to them
   - GenerateRole.yml
   - GenerateKMS.yml
   - GenerateBucket.yml
   - GenerateEC2.yml
+- replace the bucket name in 'TemplateURL' in the file main.yml, if the above bucket name is not 'jianyuancao-assignment-code'
 - Run Stack, and [choose file] main.yml, click button next then go on 
   - Stack name - could be the one you prefer, like 'test-jyc-assignment'  
   - VPCId - Choose the default one (which was attached the InternetGateway)
@@ -63,6 +64,7 @@ file) outlining the assumptions and steps should be included in the root folder)
   - then, click button Create. and waiting for CloudFormation Complete the deployment on AWS.
  
  # Verify Guide
+ the syslog files will be automatically upload to the S3 bucket under the prefix EC2 instance ID
  ## Steps
  - Login the AWS console
  - open the bucket which was created in above deployment in S3
@@ -70,9 +72,8 @@ file) outlining the assumptions and steps should be included in the root folder)
  - Monitor the bucket content
    - show the prefix as EC2 instance id
    - show the log files under the prefix,ex: *.gz
-   - the log file number is increasing with time
- - Login the EC2 instance with the key file LoginAssignmentEC2.pem
- - 
+   - the log file number is increasing with time estimate
+   
   
 
 
