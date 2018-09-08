@@ -139,7 +139,7 @@ Resources:
 #      Path: '/'
 #      Roles:
 #        - !Ref RoleSyslogtoS3
-  EC2:
+  MyEC2:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
     CreationPolicy:
@@ -158,9 +158,9 @@ Resources:
           !Sub |
             #!/bin/bash -ex
             yum install -y aws-cfn-bootstrap
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets tdagent --region ${AWS::Region}
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource MyEC2 --configsets tdagent --region ${AWS::Region}
             yum -y update
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource MyEC2 --region ${AWS::Region}
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -179,8 +179,8 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.EC2.Metadata.AWS::CloudFormation::Init
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets tdagent --region ${AWS::Region}
+                path=Resources.MyEC2.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource MyEC2 --configsets tdagent --region ${AWS::Region}
               mode: "000400"
               owner: root
               group: root
@@ -284,22 +284,29 @@ Resources:
           test: "test $(grep -i '#add by CFN' /etc/td-agent/td-agent.conf|wc -l) -lt 1"
           files:
             /etc/td-agent/td-agent.conf:
-              content: !Sub |
-                <source>
-                  @type syslog
-                  port 42185
-                  tag system
-                </source>
-                
-                <match system.**>
-                  @type stdout
-                </match>
+              content: !Sub  
+                - "<source>\n 
+                   @type syslog \n
+                   port 42185\n 
+                   tag system \n
+                   </source>\n
+                   \n
+                   <match system.**>\n
+                    @type s3\n
+                   s3_bucket ${BucketName} \n
+                    s3_region ${BucketRegion} \n
+                    path Token_path/\n
+                    buffer_path /var/log/td-agent/buffer\n
+                    time_slice_format ${SyslogCollectInterval}\n
+                    time_slice_wait ${SyslogUploadS3Interval}m\n
+                  </match>\n"
+                - { BucketName: !ImportValue sharedinf-SyslogBucketName,BucketRegion: !ImportValue sharedinf-SyslogBucketRegion }
               mode: "00644"
               owner: root
               group: root
           commands:
-            test1:
-              command: " echo \"!ImportValue sharedinf-SyslogBucketRegion\" "
+            fillout_instance_id:
+              command: "sed -i \"s/Token_path/$(curl 169.254.169.254/latest/meta-data/instance-id)/g\" /etc/td-agent/td-agent.conf "
               cwd: "~"
         restart-td-agent:
           services:
@@ -308,6 +315,10 @@ Resources:
                 enabled: "true"
                 ensureRunning: "true"
                 files: ["/etc/td-agent/td-agent.conf"]
+          commands:
+            trigger_syslog_service:
+              command: " service td-agent restart;service rsyslog restart"
+              cwd: "~"
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -327,10 +338,10 @@ Resources:
 Outputs:
   EC2IPAddress:
     Description: EC2 IP Address
-    Value: !Join ["",["EC2 Public IP address: ",!GetAtt EC2.PublicIp]]
+    Value: !Join ["",["EC2 Public IP address: ",!GetAtt MyEC2.PublicIp]]
   InstanceID:
     Description: EC2 Instance ID
-    Value: !Ref EC2 
+    Value: !Ref MyEC2 
   TestOutput:
     Description: Test Output
     Value: !ImportValue sharedinf-SyslogBucketRegion 
