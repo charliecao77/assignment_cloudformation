@@ -27,7 +27,8 @@
   - GenerateEC2.yml
 - replace the bucket name in 'TemplateURL' in the file main.yml, if the above bucket name is not 'jianyuancao-assignment-code'
 - Run Stack, and [choose file] main.yml, click button next then go on 
-  - Stack name - could be the one you prefer, like 'test-jyc-assignment'  
+  - Stack name - could be the one you prefer, like 'test-jyc-assignment'
+  - CFNTemplateS3 - A Bucket name which contains CloudFormation Template files in S3
   - VPCId - Choose the default one (which was attached the InternetGateway)
   - EnvironmentSize - default is t1.micro
   - SSHKeyname - choose 'LoginAssignmentEC2' (the one created before) for ssh login the EC2 Server
