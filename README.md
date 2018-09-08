@@ -29,7 +29,7 @@ file) outlining the assumptions and steps should be included in the root folder)
 
 
 # How to parse syslog and write into S3 with td-agent
-#####[Ref link](https://docs.fluentd.org/v0.12/articles/out_s3)
+[Ref link](https://docs.fluentd.org/v0.12/articles/out_s3)
 - A running instance of rsyslogd
 - Install td-agent (which is a stable community distribution of Fluentd)
 ```
