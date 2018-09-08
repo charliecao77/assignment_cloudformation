@@ -1,13 +1,44 @@
+Description: "Master template that includes nested templates"
+Parameters:
+  testparameter:
+    Type: String
+    Description: test
+    Default: No
+    AllowedValues:
+      - Yes
+      - No
 Resources:
-
-VPC:
+  RoleStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-        TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/infrastructure/vpc.yaml
+      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateRole.yml  
+      TimeoutInMinutes: 5
+  KMSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateKMS.yml
         Parameters:
-            EnvironmentName:    !Ref AWS::StackName
-            VpcCIDR:            10.180.0.0/16
-            PublicSubnet1CIDR:  10.180.8.0/21
-            PublicSubnet2CIDR:  10.180.16.0/21
-            PrivateSubnet1CIDR: 10.180.24.0/21
-            PrivateSubnet2CIDR: 10.180.32.0/21
+          Para1: test1
+          Para2: test2
+  BucketStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateBucket.yml
+
+  EC2Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/jianyuancao-assignment-code/GenerateEC2.yml
+        Parameters:
+          VPCId: 1323
+          EnvironmentSize: 2323
+          SSHkeyname: 2323
+          InstallSourceTdAgent: 233
+          SyslogCollectInterval: 23
+          SyslogUploadS3Interval: 23
+Outputs:
+  EC2InstanceID:
+    Value: !GetAtt ["EC2Stack","Outputs.InstanceID"]
+
+      
+                
