@@ -35,7 +35,7 @@
   - Stack name - could be the one you prefer, like 'test-jyc-assignment'
   - CFNTemplateS3 - fill out the Bucket name,which was created above and contained those CloudFormation Template files in S3
   - VPCId - Choose the default one (which was attached the InternetGateway)
-  - EnvironmentSize - default is t1.micro
+  - EnvironmentSize - default is t2.micro
   - SSHKeyname - choose 'LoginAssignmentEC2' (the one created before) for ssh login the EC2 Server
   - InstallSourceTdAgent - skip
   - SyslogCollectInterval - choose %Y%m%d%H%M (for testing only, that's why didn't set it as a default value)
