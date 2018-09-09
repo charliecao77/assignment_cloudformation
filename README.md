@@ -36,7 +36,7 @@
   - CFNTemplateS3 - fill out the Bucket name,which was created above and contained those CloudFormation Template files in S3
   - VPCId - Choose the default one (which was attached the InternetGateway)
   - EnvironmentSize - default is t2.micro
-  - SSHKeyname - choose 'LoginAssignmentEC2' (the one created before) for ssh login the EC2 Server
+  - SSHKeyname - choose 'LoginAssignmentEC2' (the one be created before) for ssh login the EC2 Server
   - InstallSourceTdAgent - skip
   - SyslogCollectInterval - choose %Y%m%d%H%M (for testing only, that's why didn't set it as a default value)
   - SyslogUploadS3Interval - change to 5 (for testing only)
@@ -51,6 +51,7 @@ the syslog files will be automatically upload to the S3 bucket under the prefix 
 - Login the AWS console
   - open the bucket which was automatically created by above deployment in S3
     - check the Bucket Stack Output, the Stack name as prefix
+    - check the file encrypted by KMS
 - Monitor the bucket content
   - waitting around 10 minutes will see the Instance Id in the Bucket
   - click the Instance Id, will see the log files with suffix ".gz"
