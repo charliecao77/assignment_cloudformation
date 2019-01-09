@@ -1,0 +1,27 @@
+Description: "Master Template that includes nested templates"
+Metadata:
+  AWS::CloudFormation::Interface:
+    parameterGroups:
+      - 
+        Label:
+          default: "Create VPC"
+        Parameters:
+          - VPCcidr
+          - VPCTagName
+Parameters:
+  VPCcidr:
+    Type: String
+    Default: 182.19.0.0/16
+    Description: Specify the VPC IP range between x.x.x.x/16 and x.x.x.x/28
+  VPCTagname:
+    Type: String
+    Default: vpc-test
+Resources:
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-charliecao-us-east-1/VPC-Stack.yml
+      #TemplateURL: !Sub "https://s3.amazonaws.com/cf-charliecao-us-east-1/VPC-Stack.yml"
+      Parameters:
+        VPCcidr: !Ref VPCcidr
+        VPCTagname: !Ref VPCTagname

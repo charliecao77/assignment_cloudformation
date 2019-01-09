@@ -1,0 +1,15 @@
+Parameters:
+  S3name:
+    Type: String
+    Default: bk-mycloudguru01
+    AllowedValues:
+      - bk-mycloudguru01
+      - bk-mycloudguru02
+      - bk-mycloudguru03
+    Description: select S3 Bucket Name
+  
+Resources:
+  S3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3name # testing
